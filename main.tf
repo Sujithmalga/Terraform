@@ -1,11 +1,11 @@
 resource "azurerm_resource_group" "vm" {
   name     = "vm"
-  location = "east-us"
+  location = "East US"
 }
 
 resource "azurerm_virtual_network" "example" {
   name                = "network"
-  address_space       = [var.primary.default]
+  address_space       = var.primary
   location            = azurerm_resource_group.vm.location
   resource_group_name = azurerm_resource_group.vm.name
 }
@@ -14,14 +14,26 @@ resource "azurerm_subnet" "example" {
   name                 = "internal"
   resource_group_name  = azurerm_resource_group.vm.name
   virtual_network_name = azurerm_virtual_network.example.name
-  address_prefixes     = [var.subnet1.default]
+  address_prefixes     = [var.subnet1]
 }
+
 resource "azurerm_subnet" "subnet2" {
   name                 = "external"
   resource_group_name  = azurerm_resource_group.vm.name
   virtual_network_name = azurerm_virtual_network.example.name
-  address_prefixes     = [var.subnet2.default]
-  
+  address_prefixes     = [var.subnet2]
+}
+
+resource "azurerm_public_ip" "example" {
+  name                = "acceptanceTestPublicIp1"
+  resource_group_name = azurerm_resource_group.vm.name
+  location            = azurerm_resource_group.vm.location
+  allocation_method   = "Dynamic"
+
+
+  tags = {
+    environment = "Production"
+  }
 }
 
 resource "azurerm_network_interface" "example" {
@@ -43,11 +55,12 @@ resource "azurerm_linux_virtual_machine" "example" {
   size                = var.virtual_machine.size
   admin_username      = var.virtual_machine.admin_username
   network_interface_ids = [
-    azurerm_network_interface.example.id]
+    azurerm_network_interface.example.id
+  ]
 
   admin_ssh_key {
-    username   = var.sshfile
-    public_key = file(var.sshfile.public_key)
+    username   = var.virtual_machine.admin_username
+    public_key = var.sshfile.public_key
   }
 
   os_disk {
